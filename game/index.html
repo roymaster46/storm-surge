@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23061018'/%3E%3Cpath d='M4 24 L10 12 L16 22 L22 10 L28 24 Z' fill='%23ffb020'/%3E%3Crect x='4' y='26' width='24' height='2' fill='%2322d3ee'/%3E%3C/svg%3E">
+<title>STORM SURGE — Open-World Crime Game in Coral Bay</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #04060d; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #fff; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .panel { position: fixed; background: rgba(4, 9, 22, 0.84); border: 1px solid rgba(34, 211, 238, 0.35); border-radius: 10px; padding: 9px 11px; backdrop-filter: blur(4px); box-shadow: 0 2px 14px rgba(0,0,0,0.6); z-index: 5; }
+  .panel.amber { border-color: rgba(255, 176, 32, 0.5); }
+  .tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 2px 7px; border-radius: 4px; background: #ffb020; color: #111; }
+  .tag.cyan { background: #0891b2; color: #fff; }
+  .tag.red { background: #dc2626; color: #fff; }
+  /* --- top-left: mission tracker --- */
+  #hud-mission { top: 10px; left: 10px; width: 308px; border-top: 3px solid #ffb020; }
+  #hud-mission h1 { margin: 0; font-size: 15px; letter-spacing: 1.5px; }
+  #hud-mission h1 .mnum { color: #ffb020; }
+  #mission-stage-label { display: inline-block; background: #ffb020; color: #111; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 4px; margin: 5px 0 4px; }
+  #mission-stage-label + span { font-size: 16px; font-weight: 800; letter-spacing: 1px; margin-left: 6px; }
+  .stagebar { height: 7px; background: #16213c; border-radius: 4px; overflow: hidden; margin: 2px 0 6px; }
+  .stagebar > div { height: 100%; background: linear-gradient(90deg, #ffb020, #22d3ee); }
+  #mission-objective { font-size: 12.5px; line-height: 1.35; color: #d7f6ff; }
+  #mission-next { font-size: 11.5px; color: #9fb3d9; margin-top: 4px; }
+  #mission-next b { color: #ffb020; }
+  /* --- dispatch feed under mission --- */
+  #hud-dispatch { top: 208px; left: 10px; width: 308px; border-top: 3px solid #22d3ee; }
+  #hud-dispatch h2 { margin: 0 0 5px; font-size: 12px; letter-spacing: 2px; color: #7ee7f9; display: flex; justify-content: space-between; }
+  #hud-dispatch h2 span { color: #fff; }
+  #dispatch-log { font-size: 11.5px; line-height: 1.5; color: #cfe8ff; max-height: 92px; overflow: hidden; }
+  #dispatch-log div b { color: #ffb020; }
+  /* --- top-right: wanted + cash + time --- */
+  #hud-wanted { top: 10px; right: 10px; width: 210px; text-align: right; border-top: 3px solid #dc2626; }
+  #wanted-stars { font-size: 26px; letter-spacing: 4px; color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.7); }
+  #wanted-stars .off { color: #334155; text-shadow: none; }
+  #hud-wanted .row { display: flex; justify-content: space-between; font-size: 12.5px; margin-top: 3px; }
+  #hud-wanted .row b { color: #2eff8a; }
+  #hud-wanted .row .amber { color: #ffb020; }
+  /* --- bottom-right: minimap --- */
+  #hud-map { right: 10px; bottom: 10px; width: 218px; height: 218px; padding: 0; overflow: hidden; border-radius: 12px; }
+  #minimap { width: 100%; height: 100%; display: block; }
+  #map-label { position: absolute; left: 8px; bottom: 6px; font-size: 10px; letter-spacing: 2px; color: #9fd8ff; text-shadow: 0 1px 3px #000; }
+  /* --- bottom-left: health, armor, weapon wheel --- */
+  #hud-vitals { left: 10px; bottom: 10px; width: 300px; }
+  .vbar { height: 9px; background: #16213c; border-radius: 5px; overflow: hidden; margin: 3px 0 7px; }
+  .vbar > div { height: 100%; }
+  #health-fill { background: linear-gradient(90deg, #22c55e, #4ade80); width: 100%; }
+  #armor-fill { background: linear-gradient(90deg, #2563eb, #22d3ee); width: 60%; }
+  #hud-vitals .lbl { font-size: 11px; letter-spacing: 1.5px; color: #9fb3d9; display: flex; justify-content: space-between; }
+  #weapon-wheel { display: flex; gap: 6px; margin-top: 6px; }
+  .wslot { flex: 1; text-align: center; font-size: 10.5px; padding: 5px 2px; border-radius: 6px; background: #0e1830; border: 1px solid #1e293b; color: #cbd5e1; }
+  .wslot.active { border-color: #ffb020; background: #2a1d05; color: #ffd166; font-weight: 700; }
+  .wslot .k { display: block; font-size: 9px; color: #64748b; }
+  /* --- bottom-center: speed + car --- */
+  #hud-speed { left: 50%; transform: translateX(-50%); bottom: 10px; width: 250px; text-align: center; }
+  #speed-num { font-size: 30px; font-weight: 800; line-height: 1; }
+  #speed-num small { font-size: 12px; color: #9fb3d9; font-weight: 600; }
+  #car-name { font-size: 12px; color: #ffd166; letter-spacing: 1px; margin-top: 2px; }
+  #nitro-bar { height: 6px; background: #16213c; border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  #nitro-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #ff2e88, #ffb020); }
+  #hud-speed .hint { font-size: 10.5px; color: #9fb3d9; margin-top: 4px; }
+  /* --- center: dialogue portrait --- */
+  #hud-dialogue { left: 50%; transform: translateX(-50%); bottom: 128px; width: 520px; display: none; border-top: 3px solid #ff2e88; }
+  #hud-dialogue .who { display: flex; gap: 10px; align-items: center; }
+  #portrait { width: 46px; height: 46px; border-radius: 8px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #ff2e88, #7c3aed); }
+  #dialogue-name { font-size: 13px; font-weight: 800; letter-spacing: 1px; color: #ffd166; }
+  #dialogue-text { font-size: 13px; line-height: 1.45; color: #e2f3ff; margin-top: 5px; }
+  #dialogue-sub { font-size: 10.5px; color: #9fb3d9; margin-top: 4px; }
+  /* --- storm banner --- */
+  #hud-storm { top: 10px; left: 50%; transform: translateX(-50%); text-align: center; background: rgba(4,9,22,0.7); border: 1px solid rgba(255,176,32,0.45); border-radius: 8px; padding: 5px 14px; z-index: 5; position: fixed; }
+  #hud-storm b { color: #ffb020; letter-spacing: 2px; font-size: 12px; }
+  #hud-storm span { font-size: 11px; color: #cfe8ff; }
+  /* --- center toast --- */
+  #toast { left: 50%; top: 22%; transform: translateX(-50%); background: rgba(4,9,22,0.88); border: 1px solid rgba(255,176,32,0.6); border-radius: 10px; padding: 10px 18px; font-size: 15px; font-weight: 700; letter-spacing: 1px; display: none; z-index: 6; position: fixed; text-align: center; }
+  #toast small { display: block; font-size: 11.5px; font-weight: 400; color: #9fb3d9; margin-top: 3px; letter-spacing: 0; }
+  /* --- overlays: start / pause / game over / garage / shop --- */
+  .overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 30%, rgba(10,25,55,0.88), rgba(2,4,10,0.96)); z-index: 20; }
+  .overlay.hidden { display: none; }
+  .card { width: 640px; max-width: 92vw; max-height: 92vh; overflow: auto; background: rgba(6,12,28,0.92); border: 1px solid rgba(255,176,32,0.5); border-radius: 16px; padding: 26px 30px; box-shadow: 0 10px 60px rgba(0,0,0,0.8); }
+  .card h1 { margin: 0 0 2px; font-size: 42px; letter-spacing: 3px; line-height: 1; }
+  .card h1 .storm { color: #ffb020; }
+  .card h1 .surge { color: #22d3ee; }
+  .card h2 { margin: 0 0 10px; font-size: 20px; letter-spacing: 2px; color: #ffd166; }
+  .card p { font-size: 13.5px; line-height: 1.55; color: #d7e8ff; }
+  .card .sub { color: #ffb020; font-size: 12px; letter-spacing: 3px; font-weight: 700; }
+  .btn { display: inline-block; background: #ffb020; color: #111; border: none; border-radius: 8px; padding: 12px 22px; font-size: 15px; font-weight: 800; letter-spacing: 1px; cursor: pointer; margin: 6px 6px 0 0; }
+  .btn.ghost { background: transparent; color: #7ee7f9; border: 1px solid #22d3ee; }
+  .btn:hover { filter: brightness(1.12); }
+  .keys { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; font-size: 12.5px; color: #cfe8ff; margin: 12px 0; }
+  .keys b { color: #ffd166; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .shop-item { border: 1px solid #1e293b; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; background: rgba(14,24,48,0.6); }
+  .shop-item b { color: #ffd166; }
+  .shop-item .price { color: #2eff8a; font-weight: 700; }
+  .shop-item button { margin-top: 6px; background: #22d3ee; color: #04222b; border: none; border-radius: 6px; padding: 6px 12px; font-weight: 800; cursor: pointer; }
+  .shop-item button:disabled { opacity: 0.4; cursor: default; }
+  #flash { position: fixed; inset: 0; background: #cfe8ff; opacity: 0; pointer-events: none; z-index: 4; }
+  #vignette { position: fixed; inset: 0; pointer-events: none; z-index: 3; background: radial-gradient(ellipse at center, transparent 55%, rgba(2,4,12,0.55) 100%); }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="vignette"></div>
+<div id="flash"></div>
+<div id="status" role="status" aria-live="polite"></div>
+
+<div id="hud-storm"><b>⚠ HURRICANE MARA — CATEGORY 4</b> &nbsp;<span id="storm-readout">Wind 148 km/h · Surge +2.1 m · Lightning active</span></div>
+
+<div id="hud-mission" class="panel amber">
+  <h1><span class="mnum" id="mission-num">MISSION 6</span> · <span id="mission-name">THE SURGE RUN</span></h1>
+  <span id="mission-stage-label">STAGE 3 / 4</span><span id="mission-stage-name">OUTRUN THE STORM</span>
+  <div class="stagebar"><div id="mission-progress" style="width:62%"></div></div>
+  <div id="mission-objective">Smash through the Harbor Road roadblock, then reach the Coral Bay flood barrier before the surge closes it.</div>
+  <div id="mission-next">Next: <b>Meet DARA at the barrier</b> · Reward <b>$4,200</b> · Respect +120</div>
+</div>
+
+<div id="hud-dispatch" class="panel">
+  <h2>CBPD DISPATCH <span id="dispatch-clock">02:47</span></h2>
+  <div id="dispatch-log"></div>
+</div>
+
+<div id="hud-wanted" class="panel">
+  <div id="wanted-stars">★★★★★<span class="off"></span></div>
+  <div class="row"><span>WANTED</span><b id="wanted-label">5 STARS — LOCKDOWN</b></div>
+  <div class="row"><span>CASH</span><b id="cash-label">$12,480</b></div>
+  <div class="row"><span>RESPECT</span><span class="amber" id="respect-label">1,240 · STREET KING</span></div>
+  <div class="row"><span>DISTRICT</span><span id="district-label">Harbor Road</span></div>
+</div>
+
+<div id="hud-dialogue" class="panel">
+  <div class="who"><div id="portrait">D</div><div><div id="dialogue-name">DARA VOSS</div><div id="dialogue-role" style="font-size:10.5px;color:#9fb3d9">Crew fixer · Harbor Road</div></div></div>
+  <div id="dialogue-text">The surge is coming over the barrier in nine minutes, Rook. You smash that roadblock, you get the manifests — and we all get out of Coral Bay rich.</div>
+  <div id="dialogue-sub">Press T to answer · portraits change with each speaker</div>
+</div>
+
+<div id="hud-vitals" class="panel">
+  <div class="lbl"><span>HEALTH</span><span id="health-num">100</span></div>
+  <div class="vbar"><div id="health-fill"></div></div>
+  <div class="lbl"><span>ARMOR</span><span id="armor-num">60</span></div>
+  <div class="vbar"><div id="armor-fill"></div></div>
+  <div id="weapon-wheel">
+    <div class="wslot active" data-w="0"><span class="k">1</span>PISTOL</div>
+    <div class="wslot" data-w="1"><span class="k">2</span>SMG</div>
+    <div class="wslot" data-w="2"><span class="k">3</span>RIFLE</div>
+    <div class="wslot" data-w="3"><span class="k">4</span>SHOTGUN</div>
+    <div class="wslot" data-w="4"><span class="k">5</span>ROCKET</div>
+  </div>
+</div>
+
+<div id="hud-speed" class="panel">
+  <div id="speed-num">0 <small>KM/H</small></div>
+  <div id="car-name">ON FOOT</div>
+  <div id="nitro-bar"><div id="nitro-fill"></div></div>
+  <div class="hint">W A S D drive · SHIFT nitro · SPACE handbrake · E enter/exit car · F steal</div>
+</div>
+
+<div id="hud-map" class="panel"><canvas id="minimap" width="218" height="218"></canvas><div id="map-label">CORAL BAY · MINIMAP</div></div>
+
+<div id="toast"></div>
+
+<div id="start-screen" class="overlay">
+  <div class="card">
+    <div class="sub">AN ORIGINAL OPEN-WORLD CRIME GAME · CORAL BAY</div>
+    <h1><span class="storm">STORM</span> <span class="surge">SURGE</span></h1>
+    <p><b>Hurricane Mara is drowning Coral Bay.</b> You are <b>Rook Calloway</b>, a wheelman with one night to pull the heist of the decade — while the storm floods the streets, the Coral Bay PD locks the city down, and a police helicopter paints you with its searchlight. Boot straight into the peak: mission 6, stage 3 of 4, five wanted stars, a roadblock ahead, and Dara Voss on the radio.</p>
+    <p>10 story missions · 5-star police response · 7 drivable cars with nitro · traffic &amp; panicking pedestrians · garage, shop, crew &amp; respect · side jobs · 6 districts · live radio · save &amp; autosave · lightning, wind, flooding and a set-piece explosion.</p>
+    <div class="keys">
+      <div><b>W A S D</b> — drive / walk</div><div><b>Mouse</b> — look / aim</div>
+      <div><b>SHIFT</b> — nitro</div><div><b>SPACE</b> — handbrake</div>
+      <div><b>E</b> — enter / exit car</div><div><b>F</b> — steal nearest car</div>
+      <div><b>1–5</b> — weapon wheel</div><div><b>Click</b> — fire</div>
+      <div><b>G</b> — garage</div><div><b>B</b> — shop</div>
+      <div><b>R</b> — change radio</div><div><b>M</b> — missions</div>
+      <div><b>P / ESC</b> — pause</div><div><b>H</b> — horn</div>
+    </div>
+    <button class="btn" id="btn-start">▶ START — MISSION 6, STAGE 3</button>
+    <button class="btn ghost" id="btn-continue">CONTINUE SAVE</button>
+    <button class="btn ghost" id="btn-freeroam">FREE ROAM</button>
+    <p style="font-size:11px;color:#8aa3c7">All art, names, story and music are original — nothing from any other commercial game. Best in desktop Chrome, keyboard + mouse. Sound starts after you click.</p>
+  </div>
+</div>
+
+<div id="pause-screen" class="overlay hidden">
+  <div class="card">
+    <h2>PAUSED — STORM SURGE</h2>
+    <p id="pause-summary">Mission 6 · Stage 3/4 · Wanted 5★ · $12,480 · Respect 1,240</p>
+    <button class="btn" id="btn-resume">RESUME</button>
+    <button class="btn ghost" id="btn-save">SAVE GAME</button>
+    <button class="btn ghost" id="btn-restart">RESTART MISSION</button>
+    <button class="btn ghost" id="btn-quit">QUIT TO TITLE</button>
+  </div>
+</div>
+
+<div id="garage-screen" class="overlay hidden">
+  <div class="card">
+    <h2>GARAGE — BAYVIEW AUTO</h2>
+    <p>Your collection lives here. Pick a ride — owned cars are free to take, the rest cost cash.</p>
+    <div class="grid2" id="garage-list"></div>
+    <button class="btn" id="btn-garage-close">CLOSE GARAGE</button>
+  </div>
+</div>
+
+<div id="shop-screen" class="overlay hidden">
+  <div class="card">
+    <h2>AMMU-NATION — PALMETTO STRIP</h2>
+    <p id="shop-cash">Cash: $12,480</p>
+    <div class="grid2" id="shop-list"></div>
+    <button class="btn" id="btn-shop-close">CLOSE SHOP</button>
+  </div>
+</div>
+
+<div id="gameover-screen" class="overlay hidden">
+  <div class="card">
+    <h2 id="gameover-title">BUSTED</h2>
+    <p id="gameover-text">The Coral Bay PD hauled you in as the surge took the streets.</p>
+    <button class="btn" id="btn-retry">RETRY MISSION</button>
+    <button class="btn ghost" id="btn-gameover-title">BACK TO TITLE</button>
+  </div>
+</div>
+
+<script src="./vendor/three.min.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
